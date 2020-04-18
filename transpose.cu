@@ -23,7 +23,9 @@ __global__ void matrix_t(int* data, int* out, int* rows, int* cols){
 //        }
 //    }
     for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS){
-        out[x_start * *cols + (y+i)] = data[(y+i)* *cols + x_start];
+        if (x_start < *cols && y+i < *rows) {
+            out[x_start * *cols + (y + i)] = data[(y + i) * *cols + x_start];
+        }
     }
 }
 
