@@ -10,15 +10,17 @@ WRITE CUDA KERNEL FOR TRANSPOSE HERE
 */
 
 __global__ void matrix_t(int* data, int* out, int* rows, int* cols){
-    int x = blockIdx.x * gridDim.x + threadIdx.x;
-    int y = blockIdx.y * gridDim.y + threadIdx.y;
-    int idx = y * *cols + x;
-    int new_idx = x * *rows + y;
+    int bx = threadIdx.x * 32;
+    int by = threadIdx.y * 32;
 
-
-    if (x < *cols && y < *rows) {
-        out[new_idx] = y;
-//        out[new_idx] = data[idx];
+    for (int x=bx; x<bx+32; x++) {
+        for (int y=by; y<by+32; y++) {
+            if (x < *cols && y < *rows) {
+                int idx = y * *cols + x;
+                int new_idx = x * *rows + y;
+                out[new_idx] = data[idx];
+            }
+        }
     }
 }
 
@@ -76,16 +78,19 @@ int main(int argc, char ** argv) {
     */
     size_t thread_x = 32;
     size_t thread_y = 32;
-    size_t grid_x = cols/thread_x + 1;
-    size_t grid_y = rows/thread_y + 1;
+    // ceiling of cols/threads_x
+    size_t grid_x = (cols + thread_x - 1) / thread_x;
+    // ceiling of rows/threads_y
+    size_t grid_y = (rows + thread_y - 1) / thread_y;
 
 //    printf("threads per block: %i, %i\n", thread_x, thread_y);
 //    printf("blocks per grid: %i, %i\n", grid_x, grid_y);
 
-    dim3 block_dim(thread_x, thread_y, 1);
-    dim3 grid_dim(grid_x, grid_y, 1);
+//    dim3 block_dim(thread_x, thread_y, 1);
+//    dim3 grid_dim(grid_x, grid_y, 1);
+    dim3 block_dim(grid_x, grid_y, 1);
 
-    matrix_t <<<grid_dim, block_dim>>> (data_p, transpose_h, rows_p, cols_p);
+    matrix_t <<<1, block_dim>>> (data_p, transpose_h, rows_p, cols_p);
     cudaDeviceSynchronize();
 
     cudaEventRecord(end, stream);
@@ -94,10 +99,10 @@ int main(int argc, char ** argv) {
     PERFORM NECESSARY DATA TRANSFER HERE
     */
 
-    for (int i=25000; i<26000; i++){
-        printf("%i_", transpose_h[i]);
-    }
-    printf("\n");
+//    for (int i=0; i<1024; i++){
+//        printf("%i_", transpose_h[i]);
+//    }
+//    printf("\n");
 
     cudaStreamSynchronize(stream);
 
