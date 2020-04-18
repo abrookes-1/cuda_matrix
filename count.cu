@@ -8,7 +8,8 @@
 /*
 WRITE CUDA KERNEL FOR COUNT HERE
 */
-
+const int CHUNK_SIZE = 32;
+const int CHUNK_ROWS = 8;
 
 int serial_implementation(int * data, int rows, int cols) {
     int count = 0;
@@ -18,24 +19,17 @@ int serial_implementation(int * data, int rows, int cols) {
     return count;
 }
 
-__global__ void matrix_count(int* data, int* out, int* rows, int* cols){
-    int id = threadIdx.x;
-    if (id < *rows * *cols){
-//        if (data[id] == 1)
-//            out[id] = 1;
-//        else
-//            out[id] = 0;
-        if (data[id] == 1)
-            atomicAdd(out, 1);
+__global__ void matrix_count(int* data, int* count, int* rows, int* cols){
+    int x = blockIdx.x * CHUNK_SIZE + threadIdx.x;
+    int y = blockIdx.y * CHUNK_SIZE + threadIdx.y;
+
+    for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS){
+        if (x < *cols && y+i < *rows) {
+            if (data[(y + i) * *cols + x] == 1)
+                atomicAdd(count, 1);
+        }
     }
 }
-
-//__global__ void array_sum(int* arr, int* arr_len, int* width){
-//    int id = threadIdx.x;
-//    if (id < arr_len){
-//
-//    }
-//}
 
 int main(int argc, char ** argv) {
     
@@ -76,8 +70,17 @@ int main(int argc, char ** argv) {
     /*
     LAUNCH KERNEL HERE
     */
+    size_t thread_x = CHUNK_SIZE;
+    size_t thread_y = CHUNK_SIZE;
+    // ceiling of cols/threads_x
+    size_t grid_x = (cols + thread_x - 1) / thread_x;
+    // ceiling of rows/threads_y
+    size_t grid_y = (rows + thread_y - 1) / thread_y;
 
-    matrix_count <<<1, rows*cols>>> (data_p, count_h, rows_p, cols_p);
+    dim3 grid_dim(grid_x, grid_y, 1);
+    dim3 block_dim(CHUNK_SIZE, CHUNK_ROWS, 1);
+
+    matrix_count <<<grid_dim, block_dim>>> (data_p, count_h, rows_p, cols_p);
     cudaDeviceSynchronize();
 
     cudaEventRecord(end, stream);
