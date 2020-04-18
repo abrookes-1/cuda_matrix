@@ -100,10 +100,10 @@ int main(int argc, char ** argv) {
     PERFORM NECESSARY DATA TRANSFER HERE
     */
 
-    for (int i=0; i<1024; i++){
-        printf("%i_", transpose_h[i]);
-    }
-    printf("\n");
+//    for (int i=0; i<1024; i++){
+//        printf("%i_", transpose_h[i]);
+//    }
+//    printf("\n");
 
     cudaStreamSynchronize(stream);
 
