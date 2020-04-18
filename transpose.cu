@@ -10,11 +10,12 @@ WRITE CUDA KERNEL FOR TRANSPOSE HERE
 */
 
 __global__ void matrix_t(int* data, int* out, int* rows, int* cols){
-    int bx = threadIdx.x * 32;
-    int by = threadIdx.y * 32;
+    int width = 300;
+    int bx = threadIdx.x * width;
+    int by = threadIdx.y * width;
 
-    for (int x=bx; x<bx+32; x++) {
-        for (int y=by; y<by+32; y++) {
+    for (int x=bx; x<bx+width; x++) {
+        for (int y=by; y<by+width; y++) {
             if (x < *cols && y < *rows) {
                 int idx = y * *cols + x;
                 int new_idx = x * *rows + y;
@@ -76,8 +77,8 @@ int main(int argc, char ** argv) {
     /*
     LAUNCH KERNEL HERE
     */
-    size_t thread_x = 32;
-    size_t thread_y = 32;
+    size_t thread_x = 300;
+    size_t thread_y = 300;
     // ceiling of cols/threads_x
     size_t grid_x = (cols + thread_x - 1) / thread_x;
     // ceiling of rows/threads_y
