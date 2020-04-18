@@ -100,7 +100,6 @@ int main(int argc, char ** argv) {
     PERFORM NECESSARY DATA TRANSFER HERE
     */
 
-<<<<<<< HEAD
 //    for (int i=0; i<(cols); i++){
 //        for (int j=0; j<(rows); j++){
 //            printf("%i_", transpose_h[i * (rows) + j]);
@@ -108,9 +107,6 @@ int main(int argc, char ** argv) {
 //        printf("\n");
 //    }
 //    for (int i=0; i<100; i++){
-=======
-//    for (int i=0; i<1024; i++){
->>>>>>> master
 //        printf("%i_", transpose_h[i]);
 //    }
 //    printf("\n");
