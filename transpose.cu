@@ -8,19 +8,19 @@
 /*
 WRITE CUDA KERNEL FOR TRANSPOSE HERE
 */
+const int CHUNK_SIZE = 32;
+const int CHUNK_ROWS = 8;
 
 __global__ void matrix_t(int* data, int* out, int* rows, int* cols){
-    int width = 300;
-    int bx = threadIdx.x * width;
-    int by = threadIdx.y * width;
+    int x = blockIdx.x * CHUNK_SIZE + threadIdx.x;
+    int y = blockIdx.y * CHUNK_SIZE + threadIdx.y;
 
-    for (int x=bx; x<bx+width; x++) {
-        for (int y=by; y<by+width; y++) {
-            if (x < *cols && y < *rows) {
-                int idx = y * *cols + x;
-                int new_idx = x * *rows + y;
-                out[new_idx] = data[idx];
-            }
+    for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS){
+        if (x < *cols && y+i < *rows) {
+//            out[(y + i) * *cols + x] = data[x * *rows + (y + i)];
+            out[x * *rows + (y + i)] = data[(y + i) * *cols + x];
+//            out[(y + i) * *cols + x] = 1;
+//            out[x * *rows + (y + i)] = 1;
         }
     }
 }
@@ -77,21 +77,21 @@ int main(int argc, char ** argv) {
     /*
     LAUNCH KERNEL HERE
     */
-    size_t thread_x = 300;
-    size_t thread_y = 300;
+    size_t thread_x = CHUNK_SIZE;
+    size_t thread_y = CHUNK_SIZE;
     // ceiling of cols/threads_x
     size_t grid_x = (cols + thread_x - 1) / thread_x;
     // ceiling of rows/threads_y
     size_t grid_y = (rows + thread_y - 1) / thread_y;
 
-//    printf("threads per block: %i, %i\n", thread_x, thread_y);
-//    printf("blocks per grid: %i, %i\n", grid_x, grid_y);
-
 //    dim3 block_dim(thread_x, thread_y, 1);
 //    dim3 grid_dim(grid_x, grid_y, 1);
-    dim3 block_dim(grid_x, grid_y, 1);
+    dim3 grid_dim(grid_x, grid_y, 1);
+    dim3 block_dim(CHUNK_SIZE, CHUNK_ROWS, 1);
+//    printf("threads per block: %i, %i\n", block_dim.x, block_dim.y);
+//    printf("blocks per grid: %i, %i\n", grid_dim.x, grid_dim.y);
 
-    matrix_t <<<1, block_dim>>> (data_p, transpose_h, rows_p, cols_p);
+    matrix_t <<<grid_dim, block_dim>>> (data_p, transpose_h, rows_p, cols_p);
     cudaDeviceSynchronize();
 
     cudaEventRecord(end, stream);
@@ -100,7 +100,13 @@ int main(int argc, char ** argv) {
     PERFORM NECESSARY DATA TRANSFER HERE
     */
 
-//    for (int i=0; i<1024; i++){
+//    for (int i=0; i<(cols); i++){
+//        for (int j=0; j<(rows); j++){
+//            printf("%i_", transpose_h[i * (rows) + j]);
+//        }
+//        printf("\n");
+//    }
+//    for (int i=0; i<100; i++){
 //        printf("%i_", transpose_h[i]);
 //    }
 //    printf("\n");
