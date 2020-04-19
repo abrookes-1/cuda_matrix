@@ -20,17 +20,31 @@ int serial_implementation(int * data, int rows, int cols) {
 }
 
 __global__ void matrix_count(int* data, int* count, int* rows, int* cols){
+    __shared__ int block_sum;
     int x = blockIdx.x * CHUNK_SIZE + threadIdx.x;
     int y = blockIdx.y * CHUNK_SIZE + threadIdx.y;
 
     for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS){
         if (x < *cols && y+i < *rows) {
-            if (data[(y + i) * *cols + x] == 1)
+            if (data[(y + i) * *cols + x] == 1) {
                 atomicAdd(count, 1);
+            }
         }
     }
+//    __syncthreads();
+//    if ((threadIdx.x | threadIdx.y) == 0)
+//        atomicAdd(count, block_sum);
 }
 
+__global__ void sum_reduc(int* data, int* len, int* width){
+    int indx = blockIdx.x * gridDim.x + threadIdx.x;
+    int sum = 0;
+    for (int i=indx; i<indx + *width; i++){
+        if (i < *len)
+            sum += data[i];
+    }
+    data[indx] = sum;
+}
 
 int main(int argc, char ** argv) {
     
@@ -66,21 +80,20 @@ int main(int argc, char ** argv) {
         data_p[i] = data[i];
     }
 
+
+    // ceiling of cols/threads_x
+    size_t grid_x = (cols + CHUNK_SIZE - 1) / CHUNK_SIZE;
+    // ceiling of rows/threads_y
+    size_t grid_y = (rows + CHUNK_SIZE - 1) / CHUNK_SIZE;
+
+    dim3 grid_dim(grid_x, grid_y, 1);
+    dim3 block_dim(CHUNK_SIZE, CHUNK_ROWS, 1);
+
     cudaEventRecord(begin, stream);
 
     /*
     LAUNCH KERNEL HERE
     */
-    size_t thread_x = CHUNK_SIZE;
-    size_t thread_y = CHUNK_SIZE;
-    // ceiling of cols/threads_x
-    size_t grid_x = (cols + thread_x - 1) / thread_x;
-    // ceiling of rows/threads_y
-    size_t grid_y = (rows + thread_y - 1) / thread_y;
-
-    dim3 grid_dim(grid_x, grid_y, 1);
-    dim3 block_dim(CHUNK_SIZE, CHUNK_ROWS, 1);
-
     matrix_count <<<grid_dim, block_dim>>> (data_p, count_h, rows_p, cols_p);
     cudaDeviceSynchronize();
 
