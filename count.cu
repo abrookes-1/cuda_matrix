@@ -20,26 +20,24 @@ int serial_implementation(int * data, int rows, int cols) {
 }
 
 __global__ void matrix_count(int* data, int* count, int* rows, int* cols){
-    __shared__ int chunk[CHUNK_SIZE*CHUNK_SIZE];
+    __shared__ int chunk[CHUNK_SIZE][CHUNK_SIZE];
     int x = blockIdx.x * CHUNK_SIZE + threadIdx.x;
     int y = blockIdx.y * CHUNK_SIZE + threadIdx.y;
 
-//    for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS){
-//        chunk[y*CHUNK_SIZE + x] = data[y*CHUNK_SIZE + x]
-//    }
+    for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS) {
+        chunk[threadIdx.x][threadIdx.y+i] = data[(y + i) * *cols + x];
+    }
+    __syncthreads();
 
-    for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS){
-        if (x < *cols && y+i < *rows) {
-            if (data[(y + i) * *cols + x] == 1) {
+    x = blockIdx.y * CHUNK_SIZE + threadIdx.x;
+    y = blockIdx.x * CHUNK_SIZE + threadIdx.y;
+
+    for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS) {
+        if (x < *rows && y+i < *cols) {
+            if (chunk[threadIdx.y + i][threadIdx.x] == 1)
                 atomicAdd(count, 1);
-            }
         }
     }
-
-
-//    __syncthreads();
-//    if ((threadIdx.x | threadIdx.y) == 0)
-//        atomicAdd(count, block_sum);
 }
 
 __global__ void sum_reduc(int* data, int* len, int* width){
