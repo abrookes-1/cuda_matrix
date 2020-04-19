@@ -24,10 +24,13 @@ __global__ void matrix_count(int* data, int* count, int* rows, int* cols){
     int y = blockIdx.y * CHUNK_SIZE + threadIdx.y;
 
     for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS){
-        if (data[(y + i) * *cols + x] == 1)
-            atomicAdd(count, 1);
+        if (x < *cols && y+i < *rows) {
+            if (data[(y + i) * *cols + x] == 1)
+                atomicAdd(count, 1);
+        }
     }
 }
+
 
 int main(int argc, char ** argv) {
     
