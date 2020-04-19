@@ -20,9 +20,13 @@ int serial_implementation(int * data, int rows, int cols) {
 }
 
 __global__ void matrix_count(int* data, int* count, int* rows, int* cols){
-    __shared__ int block_sum;
+    __shared__ int chunk[CHUNK_SIZE*CHUNK_SIZE];
     int x = blockIdx.x * CHUNK_SIZE + threadIdx.x;
     int y = blockIdx.y * CHUNK_SIZE + threadIdx.y;
+
+//    for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS){
+//        chunk[y*CHUNK_SIZE + x] = data[y*CHUNK_SIZE + x]
+//    }
 
     for (int i=0; i<CHUNK_SIZE; i+= CHUNK_ROWS){
         if (x < *cols && y+i < *rows) {
@@ -31,6 +35,8 @@ __global__ void matrix_count(int* data, int* count, int* rows, int* cols){
             }
         }
     }
+
+
 //    __syncthreads();
 //    if ((threadIdx.x | threadIdx.y) == 0)
 //        atomicAdd(count, block_sum);
